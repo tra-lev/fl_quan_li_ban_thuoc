@@ -2,47 +2,100 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../screens/login_screen.dart';
 
-class SettingsTab extends StatelessWidget {
+class SettingsTab extends StatefulWidget {
   const SettingsTab({Key? key}) : super(key: key);
 
-  // 1. Khởi tạo Service xử lý đăng xuất
+  @override
+  State<SettingsTab> createState() => _SettingsTabState();
+}
+
+class _SettingsTabState extends State<SettingsTab> {
   static final AuthService _authService = AuthService();
 
-  // 2. Hàm xử lý đăng xuất (Copy logic từ ProfileTab sang)
+  // 1. Dữ liệu giả lập thông tin cửa hàng (Sau này sẽ lấy từ Database/SharedPreferences)
+  Map<String, String> _storeInfo = {
+    'name': 'Nhà Thuốc Group 4',
+    'address': '123 Đường ABC, Hà Nội',
+    'hotline': '0123.456.789',
+  };
+
+  // 2. Hàm hiển thị Dialog sửa thông tin cửa hàng
+  void _showEditStoreDialog() {
+    final nameCtrl = TextEditingController(text: _storeInfo['name']);
+    final addressCtrl = TextEditingController(text: _storeInfo['address']);
+    final phoneCtrl = TextEditingController(text: _storeInfo['hotline']);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sửa thông tin cửa hàng'),
+        content: SingleChildScrollView( // Chống tràn màn hình khi hiện bàn phím
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Tên nhà thuốc', prefixIcon: Icon(Icons.store)),
+              ),
+              TextField(
+                controller: addressCtrl,
+                decoration: const InputDecoration(labelText: 'Địa chỉ', prefixIcon: Icon(Icons.location_on)),
+              ),
+              TextField(
+                controller: phoneCtrl,
+                decoration: const InputDecoration(labelText: 'Hotline', prefixIcon: Icon(Icons.phone)),
+                keyboardType: TextInputType.phone,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('HỦY')),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _storeInfo = {
+                  'name': nameCtrl.text,
+                  'address': addressCtrl.text,
+                  'hotline': phoneCtrl.text,
+                };
+              });
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Đã cập nhật thông tin cửa hàng'), behavior: SnackBarBehavior.floating),
+              );
+            },
+            child: const Text('CẬP NHẬT'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _handleLogout(BuildContext context) {
     showDialog(
       context: context,
-      barrierDismissible: false, // Buộc người dùng phải chọn
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Xác nhận đăng xuất'),
           content: const Text('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống quản trị?'),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('HỦY', style: TextStyle(color: Colors.grey)),
-            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('HỦY', style: TextStyle(color: Colors.grey))),
             ElevatedButton(
               onPressed: () async {
-                Navigator.pop(context); // Đóng Dialog
-
-                // Thực hiện xóa dữ liệu đăng nhập (Token/Session)
+                Navigator.pop(context);
                 await _authService.logout();
-
-                // Điều hướng về Login và XÓA SẠCH lịch sử các màn hình trước đó
                 if (context.mounted) {
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => LoginScreen()),
-                        (route) => false, // Xóa sạch stack
+                        (route) => false,
                   );
                 }
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
               child: const Text('ĐĂNG XUẤT'),
             ),
           ],
@@ -62,11 +115,12 @@ class SettingsTab extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
           const SizedBox(height: 10),
 
+          // HIỂN THỊ THÔNG TIN CỬA HÀNG THỰC TẾ
           _buildSettingCard(
-            title: 'Thông tin cửa hàng',
-            subtitle: 'Tên tiệm, địa chỉ, hotline in trên hóa đơn',
+            title: _storeInfo['name']!,
+            subtitle: 'Địa chỉ: ${_storeInfo['address']}\nHotline: ${_storeInfo['hotline']}',
             icon: Icons.storefront,
-            onTap: () {},
+            onTap: _showEditStoreDialog, // Bấm để sửa
           ),
 
           _buildSettingCard(
@@ -103,14 +157,12 @@ class SettingsTab extends StatelessWidget {
 
           const SizedBox(height: 32),
 
-          // 3. NÚT ĐĂNG XUẤT ĐÃ ĐƯỢC CẬP NHẬT LOGIC
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: ElevatedButton.icon(
               onPressed: () => _handleLogout(context),
               icon: const Icon(Icons.logout),
-              label: const Text('ĐĂNG XUẤT HỆ THỐNG',
-                  style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+              label: const Text('ĐĂNG XUẤT HỆ THỐNG', style: TextStyle(fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red.shade50,
                 foregroundColor: Colors.red,
@@ -126,7 +178,6 @@ class SettingsTab extends StatelessWidget {
     );
   }
 
-  // Widget hỗ trợ vẽ các ô cài đặt cho sạch code
   Widget _buildSettingCard({
     required String title,
     required String subtitle,
@@ -139,10 +190,11 @@ class SettingsTab extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
+        isThreeLine: true, // Cho phép hiển thị subtitle nhiều dòng
         leading: Icon(icon, color: Colors.blueAccent),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-        trailing: trailing ?? const Icon(Icons.chevron_right, color: Colors.grey),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 13, height: 1.4)),
+        trailing: trailing ?? const Icon(Icons.edit, size: 20, color: Colors.blueGrey),
         onTap: onTap,
       ),
     );
