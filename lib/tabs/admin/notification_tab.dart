@@ -42,32 +42,36 @@ class _NotificationTabState extends State<NotificationTab> {
     });
   }
 
-  // ==========================================
+// ==========================================
   // HÀM XỬ LÝ DUYỆT YÊU CẦU & CỘNG VÀO KHO
   // ==========================================
   void _handleRequest(Map<String, dynamic> request, String newStatus) {
     setState(() {
-      // 1. Cập nhật trạng thái hiển thị của yêu cầu
       request['status'] = newStatus;
 
-      // 2. NẾU ADMIN BẤM "ĐÃ DUYỆT" -> CỘNG THUỐC VÀO KHO
       if (newStatus == 'Đã duyệt') {
         String medicineName = request['medicineName'];
-
-        // Tìm thuốc trong kho dựa vào tên
         int medIndex = globalMedicines.indexWhere((m) => m['name'] == medicineName);
+        int importQuantity = request['quantity'] ?? 50;
 
         if (medIndex != -1) {
-          // Lấy số lượng yêu cầu (nếu trong data không có field quantity, mặc định cộng 50)
-          int importQuantity = request['quantity'] ?? 50;
-
-          // Cộng vào tồn kho
           globalMedicines[medIndex]['stock'] += importQuantity;
         }
+
+        // ---------- ĐOẠN CODE THÊM MỚI Ở ĐÂY ----------
+        // Tạo thời gian hiện tại cho thông báo (Giờ:Phút)
+        String currentTime = '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}';
+
+        // Thêm thông báo mới lên ĐẦU danh sách của CEO
+        globalCeoNotifications.insert(0, {
+          'title': 'Nhập thêm thuốc',
+          'content': 'Admin yêu cầu nhập thêm $importQuantity hộp $medicineName vào kho.',
+          'time': currentTime,
+        });
+        // ----------------------------------------------
       }
     });
 
-    // 3. Hiển thị thông báo
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(

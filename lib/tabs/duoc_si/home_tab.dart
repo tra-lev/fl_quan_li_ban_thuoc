@@ -10,6 +10,7 @@ import '../../pages/duoc_si/don_hang/scan_prescription_page.dart';
 import '../../pages/duoc_si/trang_chu/khach_hang_page.dart';
 import '../../pages/duoc_si/trang_chu/bao_cao_ca_page.dart';
 import '../../pages/duoc_si/trang_chu/ton_kho_page.dart';
+import '../../pages/duoc_si/don_hang/xuat_hd.dart';
 
 // Import Data dùng chung
 import '../../data/order_data.dart';
@@ -286,6 +287,20 @@ class _HomeTabState extends State<HomeTab> {
               crossAxisSpacing: 12,
               childAspectRatio: 2.8,
               children: [
+                QuickActionButton(
+                    title: "Xuất hóa đơn",
+                    icon: Icons.receipt_long_outlined,
+                    onTap: () {
+                      if (globalOrders.isNotEmpty) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => XuatHoaDonPage(order: globalOrders.first)),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chưa có hóa đơn nào để xuất!')));
+                      }
+                    }
+                ),
                 QuickActionButton(
                     title: "Quét đơn thuốc",
                     icon: Icons.camera_alt_outlined,

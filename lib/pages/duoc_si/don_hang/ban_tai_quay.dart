@@ -7,6 +7,7 @@ import '../../../data/medicine_data.dart';
 import '../../../data/customer_data.dart';
 import '../../../data/order_data.dart';
 import 'qr_scanner_page.dart';
+import 'xuat_hd.dart';
 
 class BanTaiQuayWidget extends StatefulWidget {
   final Map<String, dynamic>? initialPrescription;
@@ -213,6 +214,21 @@ class _BanTaiQuayWidgetState extends State<BanTaiQuayWidget> {
     double total = _cart.fold(0, (sum, item) => sum + (item['qty'] * item['price']));
     int pointsEarned = (total / 10000).floor();
 
+    // Tạo object đơn hàng mới
+    final newOrder = {
+      'id': 'DH${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+      'date': 'Hôm nay',
+      'time': DateFormat('HH:mm').format(DateTime.now()), // Lấy giờ thực tế
+      'customerName': name.isEmpty ? 'Khách lẻ' : name,
+      'phone': phone.isEmpty ? 'N/A' : phone,
+      'total': total.toInt(),
+      'status': 'Hoàn thành',
+      'pointsPlus': pointsEarned,
+      'type': 'Bán tại quầy',
+      'items': List.from(_cart), // Lưu danh sách thuốc vào đơn hàng
+    };
+
+    // Cập nhật khách hàng
     if (phone.isNotEmpty) {
       int existingIndex = globalCustomers.indexWhere((c) => c['phone'] == phone);
       if (existingIndex != -1) {
@@ -221,20 +237,16 @@ class _BanTaiQuayWidgetState extends State<BanTaiQuayWidget> {
       }
     }
 
-    globalOrders.insert(0, {
-      'id': 'DH${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
-      'date': 'Hôm nay',
-      'time': 'Vừa xong',
-      'customerName': name.isEmpty ? 'Khách lẻ' : name,
-      'phone': phone.isEmpty ? 'N/A' : phone,
-      'total': total.toInt(),
-      'status': 'Hoàn thành',
-      'pointsPlus': pointsEarned,
-      'type': 'Bán tại quầy'
-    });
+    // Thêm vào danh sách đơn hàng chung
+    globalOrders.insert(0, newOrder);
 
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Thanh toán thành công!'), backgroundColor: Colors.green));
-    Navigator.pop(context);
+
+    // ĐIỀU HƯỚNG SANG TRANG XUẤT HÓA ĐƠN
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => XuatHoaDonPage(order: newOrder)),
+    );
   }
 
   @override

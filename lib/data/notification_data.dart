@@ -14,6 +14,8 @@ List<Map<String, dynamic>> staticNotifications = [
     'isUnread': false,
   },
 ];
+// Khai báo danh sách thông báo dành cho CEO
+List<Map<String, dynamic>> globalCeoNotifications = [];
 
 // THÊM BIẾN NÀY ĐỂ LƯU TRẠNG THÁI TOÀN CỤC
 List<Map<String, dynamic>> globalAdminNotifications = [];
