@@ -7,6 +7,9 @@ import 'package:fl_quan_li_ban_thuoc/tabs/admin/setting_tab.dart';
 import 'package:fl_quan_li_ban_thuoc/tabs/admin/staff_tab.dart';
 import 'package:fl_quan_li_ban_thuoc/tabs/admin/notification_tab.dart';
 
+// QUẢN LÝ ĐƠN NHẬP TỪ NHÀ CUNG CẤP
+import 'package:fl_quan_li_ban_thuoc/tabs/admin/admin_import_tab.dart';
+
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({Key? key}) : super(key: key);
 
@@ -31,8 +34,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
       const InventoryTab(),    // Index 1
       const StaffTab(),        // Index 2
-      const NotificationTab(), // Index 3
-      const SettingsTab(),     // Index 4
+      const NotificationTab(), // Index 3: Yêu cầu từ Dược sĩ
+
+      // ĐÃ ĐỔI CHỖ: Đẩy tab Nhập hàng lên trước tab Tài khoản
+      const AdminImportTab(),  // Index 4: Quản lý Đơn nhập NCC
+      const SettingsTab(),     // Index 5: Đã đẩy xuống cuối cùng
     ];
 
     return Scaffold(
@@ -56,6 +62,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
           BottomNavigationBarItem(icon: Icon(Icons.inventory_2), label: 'Kho'),
           BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Nhân viên'),
           BottomNavigationBarItem(icon: Icon(Icons.notifications), label: 'Thông báo'),
+
+          // ĐÃ ĐỔI CHỖ Ở MENU ĐỂ ĐỒNG BỘ
+          BottomNavigationBarItem(icon: Icon(Icons.local_shipping), label: 'Nhập hàng'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Tài khoản'),
         ],
       ),

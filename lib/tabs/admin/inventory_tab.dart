@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_quan_li_ban_thuoc/pages/admin/kho_hang/inventory_list_page.dart';
 import 'package:fl_quan_li_ban_thuoc/pages/admin/kho_hang/category_page.dart';
-import 'package:fl_quan_li_ban_thuoc/pages/admin/kho_hang/supplier_page.dart';
+import 'package:fl_quan_li_ban_thuoc/pages/ceo/nha_cung_cap/supplier_page.dart';
 
 class InventoryTab extends StatelessWidget {
   const InventoryTab({Key? key}) : super(key: key);

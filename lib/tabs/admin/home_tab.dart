@@ -7,6 +7,9 @@ import '../../data/shift_report_data.dart';
 import '../../data/medicine_data.dart';
 import '../../data/staff_data.dart';
 
+// ĐÃ THÊM: Import data nhà cung cấp để đếm số đơn hàng
+import '../../data/supplier_data.dart';
+
 class HomeTab extends StatefulWidget {
   final Function(int)? onChangeTab;
 
@@ -39,6 +42,9 @@ class _HomeTabState extends State<HomeTab> {
     int activeStaffsCount = globalStaffs.where((s) => s['status'] == 'Hoạt động').length;
     int pendingRequestsCount = globalRequests.where((req) => req['status'] == 'Chờ duyệt').length;
 
+    // ĐÃ THÊM: Đếm số lượng đơn hàng từ Nhà cung cấp đang chờ nhận (Chờ giao hoặc Đang giao)
+    int incomingOrdersCount = globalPurchaseOrders.where((order) => order['status'] == 'Chờ giao hàng' || order['status'] == 'Đang giao').length;
+
     List<Map<String, dynamic>> pendingReports = globalShiftReports.where((rep) => rep['status'] == 'Chờ duyệt').toList();
     int pendingReportsCount = pendingReports.length;
 
@@ -53,7 +59,6 @@ class _HomeTabState extends State<HomeTab> {
               children: [
                 Icon(Icons.dashboard_rounded, color: Colors.blueAccent, size: 28),
                 SizedBox(width: 12),
-                // FIX TRÀN VIỀN 1: Bọc Title bằng Expanded
                 Expanded(
                   child: Text(
                     'Tổng quan Hệ thống',
@@ -65,7 +70,7 @@ class _HomeTabState extends State<HomeTab> {
             ),
             const SizedBox(height: 20),
 
-            // LƯỚI THỐNG KÊ
+            // LƯỚI THỐNG KÊ ĐÃ CẬP NHẬT THÊM THẺ THỨ 5
             LayoutBuilder(
                 builder: (context, constraints) {
                   int crossAxisCount = 2;
@@ -92,21 +97,21 @@ class _HomeTabState extends State<HomeTab> {
                         count: warningMedsCount.toString(),
                         color: Colors.redAccent,
                         icon: Icons.warning_amber_rounded,
-                        onTap: () => widget.onChangeTab?.call(3),
+                        onTap: () => widget.onChangeTab?.call(3), // Chuyển sang Thông báo
                       ),
                       _buildModernStatCard(
                         title: 'Dược sĩ hoạt động',
                         count: activeStaffsCount.toString(),
                         color: Colors.green,
                         icon: Icons.person_pin,
-                        onTap: () => widget.onChangeTab?.call(2),
+                        onTap: () => widget.onChangeTab?.call(2), // Chuyển sang Nhân sự
                       ),
                       _buildModernStatCard(
-                        title: 'Đơn nhập chờ duyệt',
+                        title: 'Đơn DS chờ duyệt',
                         count: pendingRequestsCount.toString(),
                         color: Colors.orange,
                         icon: Icons.inventory_2_outlined,
-                        onTap: () => widget.onChangeTab?.call(3),
+                        onTap: () => widget.onChangeTab?.call(3), // Chuyển sang Thông báo
                       ),
                       _buildModernStatCard(
                           title: 'Ca chờ đối soát',
@@ -123,6 +128,14 @@ class _HomeTabState extends State<HomeTab> {
                             );
                           }
                       ),
+                      // THẺ MỚI THÊM VÀO: Đơn hàng từ nhà cung cấp
+                      _buildModernStatCard(
+                        title: 'Đơn NCC đang giao',
+                        count: incomingOrdersCount.toString(),
+                        color: Colors.teal, // Phối màu xanh ngọc cho khác biệt
+                        icon: Icons.local_shipping,
+                        onTap: () => widget.onChangeTab?.call(4), // Chuyển sang Tab Nhập Hàng (Index 4 mới)
+                      ),
                     ],
                   );
                 }
@@ -130,13 +143,12 @@ class _HomeTabState extends State<HomeTab> {
 
             const SizedBox(height: 30),
 
-            // DANH SÁCH BÁO CÁO CA CẦN XỬ LÝ
+            // DANH SÁCH BÁO CÁO CA CẦN XỬ LÝ (Giữ nguyên)
             if (pendingReports.isNotEmpty) ...[
               const Row(
                 children: [
                   Icon(Icons.assignment_late_rounded, color: Colors.redAccent, size: 22),
                   SizedBox(width: 8),
-                  // FIX TRÀN VIỀN 2: Bọc tiêu đề section
                   Expanded(
                     child: Text(
                       'Báo Cáo Ca Cần Xử Lý',
@@ -162,10 +174,10 @@ class _HomeTabState extends State<HomeTab> {
                   String diffText = "Khớp số liệu";
                   if (diff < 0) {
                     diffColor = Colors.red;
-                    diffText = "THIẾU: ${formatCurrency.format(diff.abs())}"; // Rút gọn chữ cho đỡ tràn
+                    diffText = "THIẾU: ${formatCurrency.format(diff.abs())}";
                   } else if (diff > 0) {
                     diffColor = Colors.orange;
-                    diffText = "THỪA: ${formatCurrency.format(diff)}"; // Rút gọn chữ cho đỡ tràn
+                    diffText = "THỪA: ${formatCurrency.format(diff)}";
                   }
 
                   return Card(
@@ -196,7 +208,7 @@ class _HomeTabState extends State<HomeTab> {
                                     Text(
                                       '${report['pharmacist']} - Ca ${report['date']}',
                                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87),
-                                      overflow: TextOverflow.ellipsis, // Cắt chữ nếu tên dài
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
                                     Row(
@@ -239,7 +251,6 @@ class _HomeTabState extends State<HomeTab> {
                             ),
                             child: Column(
                               children: [
-                                // Đã làm ngắn gọn nội dung để không bao giờ bị tràn
                                 _buildMoneyRow('Hệ thống:', formatCurrency.format(report['systemCash'])),
                                 _buildMoneyRow('Nộp thực tế:', formatCurrency.format(report['reportedCash'])),
                                 const Padding(
@@ -262,7 +273,7 @@ class _HomeTabState extends State<HomeTab> {
                                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đang gọi điện cho Dược sĩ...')));
                                 },
                                 icon: const Icon(Icons.call, size: 18),
-                                label: const Text('Liên hệ', style: TextStyle(fontSize: 13)), // Làm ngắn nút
+                                label: const Text('Liên hệ', style: TextStyle(fontSize: 13)),
                                 style: OutlinedButton.styleFrom(
                                     foregroundColor: Colors.blueGrey,
                                     side: BorderSide(color: Colors.grey.shade300),
@@ -370,14 +381,12 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  // FIX TRÀN VIỀN 3: Đảm bảo dòng chữ báo cáo không ép số tiền văng ra ngoài
   Widget _buildMoneyRow(String label, String value, {Color color = Colors.black87, bool isBold = false, double size = 13}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Thêm Expanded để label tự động cắt "..." nếu màn hình quá hẹp
           Expanded(
             child: Text(
               label,
@@ -385,7 +394,7 @@ class _HomeTabState extends State<HomeTab> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 8), // Khoảng cách nhỏ để không bị dính vào tiền
+          const SizedBox(width: 8),
           Text(
               value,
               style: TextStyle(fontSize: isBold ? size + 2 : size, color: color, fontWeight: isBold ? FontWeight.w900 : FontWeight.bold)
