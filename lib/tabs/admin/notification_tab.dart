@@ -1,4 +1,9 @@
+// lib/tabs/admin/notification_tab.dart
+
 import 'package:flutter/material.dart';
+import '../../data/notification_data.dart';
+import '../../data/request_data.dart';
+import '../../data/medicine_data.dart'; // ĐÃ THÊM: Import kho thuốc để cộng số lượng
 
 class NotificationTab extends StatefulWidget {
   const NotificationTab({Key? key}) : super(key: key);
@@ -8,41 +13,18 @@ class NotificationTab extends StatefulWidget {
 }
 
 class _NotificationTabState extends State<NotificationTab> {
-  // 1. Danh sách dữ liệu thông báo
-  final List<Map<String, dynamic>> _notifications = [
-    {
-      'id': 1,
-      'title': 'Cảnh báo: Thuốc sắp hết hạn',
-      'content': 'Lô thuốc Hapacol 250 (Mã: HP02) sẽ hết hạn trong 15 ngày tới.',
-      'time': '10 phút trước',
-      'icon': Icons.history_toggle_off,
-      'color': Colors.red,
-      'isUnread': true,
-    },
-    {
-      'id': 2,
-      'title': 'Sắp hết hàng',
-      'content': 'Sản phẩm Vitamin C 500mg chỉ còn 5 hộp trong kho.',
-      'time': '2 giờ trước',
-      'icon': Icons.inventory_2_outlined,
-      'color': Colors.orange,
-      'isUnread': true,
-    },
-    {
-      'id': 3,
-      'title': 'Nhân sự mới',
-      'content': 'Dược sĩ Trần Thị C vừa được cấp quyền truy cập hệ thống.',
-      'time': 'Hôm qua',
-      'icon': Icons.person_add_alt_1,
-      'color': Colors.blue,
-      'isUnread': false,
-    },
-  ];
 
-  // 2. Hàm đánh dấu tất cả là đã đọc
+  @override
+  void initState() {
+    super.initState();
+    if (globalAdminNotifications.isEmpty) {
+      globalAdminNotifications = getDynamicNotifications();
+    }
+  }
+
   void _markAllAsRead() {
     setState(() {
-      for (var item in _notifications) {
+      for (var item in globalAdminNotifications) {
         item['isUnread'] = false;
       }
     });
@@ -51,26 +33,70 @@ class _NotificationTabState extends State<NotificationTab> {
     );
   }
 
-  // 3. Hàm đọc từng thông báo
   void _markAsRead(int id) {
     setState(() {
-      final index = _notifications.indexWhere((element) => element['id'] == id);
+      final index = globalAdminNotifications.indexWhere((element) => element['id'] == id);
       if (index != -1) {
-        _notifications[index]['isUnread'] = false;
+        globalAdminNotifications[index]['isUnread'] = false;
       }
     });
   }
 
+// ==========================================
+  // HÀM XỬ LÝ DUYỆT YÊU CẦU & CỘNG VÀO KHO
+  // ==========================================
+  void _handleRequest(Map<String, dynamic> request, String newStatus) {
+    setState(() {
+      request['status'] = newStatus;
+
+      if (newStatus == 'Đã duyệt') {
+        String medicineName = request['medicineName'];
+        int medIndex = globalMedicines.indexWhere((m) => m['name'] == medicineName);
+        int importQuantity = request['quantity'] ?? 50;
+
+        if (medIndex != -1) {
+          globalMedicines[medIndex]['stock'] += importQuantity;
+        }
+
+        // ---------- ĐOẠN CODE THÊM MỚI Ở ĐÂY ----------
+        // Tạo thời gian hiện tại cho thông báo (Giờ:Phút)
+        String currentTime = '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}';
+
+        // Thêm thông báo mới lên ĐẦU danh sách của CEO
+        globalCeoNotifications.insert(0, {
+          'title': 'Nhập thêm thuốc',
+          'content': 'Admin yêu cầu nhập thêm $importQuantity hộp $medicineName vào kho.',
+          'time': currentTime,
+        });
+        // ----------------------------------------------
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            newStatus == 'Đã duyệt'
+                ? 'Đã duyệt và nhập thêm thuốc ${request['medicineName']} vào kho!'
+                : 'Đã từ chối yêu cầu nhập ${request['medicineName']}'
+        ),
+        backgroundColor: newStatus == 'Đã duyệt' ? Colors.green : Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Lọc danh sách cho 2 phần
-    final unreadList = _notifications.where((n) => n['isUnread'] == true).toList();
-    final readList = _notifications.where((n) => n['isUnread'] == false).toList();
+    final unreadList = globalAdminNotifications.where((n) => n['isUnread'] == true).toList();
+    final readList = globalAdminNotifications.where((n) => n['isUnread'] == false).toList();
+
+    // Lọc ra các yêu cầu chưa duyệt
+    final pendingRequests = globalRequests.where((req) => req['status'] == 'Chờ duyệt').toList();
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text('Thông báo', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: const Text('Thông báo hệ thống', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 0.5,
         actions: [
@@ -84,19 +110,30 @@ class _NotificationTabState extends State<NotificationTab> {
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
+          // YÊU CẦU TỪ DƯỢC SĨ
+          if (pendingRequests.isNotEmpty) ...[
+            _buildSectionHeader('Yêu cầu từ Dược sĩ (${pendingRequests.length})'),
+            ...pendingRequests.map((req) => _buildRequestItem(req)),
+            const SizedBox(height: 16),
+          ],
+
+          // CẢNH BÁO HỆ THỐNG (CHƯA ĐỌC)
           if (unreadList.isNotEmpty) ...[
-            _buildSectionHeader('Chưa đọc (${unreadList.length})'),
+            _buildSectionHeader('Cảnh báo tự động (${unreadList.length})'),
             ...unreadList.map((n) => _buildNotificationItem(n)),
           ],
+
+          // ĐÃ ĐỌC
           if (readList.isNotEmpty) ...[
             const SizedBox(height: 16),
             _buildSectionHeader('Đã đọc'),
             ...readList.map((n) => _buildNotificationItem(n)),
           ],
-          if (_notifications.isEmpty)
+
+          if (globalAdminNotifications.isEmpty && pendingRequests.isEmpty)
             const Center(child: Padding(
               padding: EdgeInsets.only(top: 100),
-              child: Text('Không có thông báo nào'),
+              child: Text('Hệ thống đang hoạt động ổn định, không có cảnh báo hay yêu cầu nào.'),
             )),
         ],
       ),
@@ -111,18 +148,70 @@ class _NotificationTabState extends State<NotificationTab> {
     );
   }
 
-  Widget _buildNotificationItem(Map<String, dynamic> data) {
-    bool isUnread = data['isUnread'];
-    Color color = data['color'];
+  Widget _buildRequestItem(Map<String, dynamic> request) {
+    // Hiển thị thêm số lượng yêu cầu nhập nếu có
+    String qtyText = request['quantity'] != null ? ' - SL: ${request['quantity']} hộp' : ' - SL: 50 hộp';
 
     return Card(
-      elevation: isUnread ? 2 : 0, // Thông báo chưa đọc sẽ nổi lên một chút
+      elevation: 2, margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.orange.withOpacity(0.5))),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.orange.withOpacity(0.2), shape: BoxShape.circle),
+                  child: const Icon(Icons.add_shopping_cart, color: Colors.orange, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Yêu cầu nhập: ${request['medicineName']}$qtyText', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      const SizedBox(height: 4),
+                      Text('${request['pharmacist']} • ${request['time']}', style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(onPressed: () => _handleRequest(request, 'Từ chối'), child: const Text('Từ chối', style: TextStyle(color: Colors.red))),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () => _handleRequest(request, 'Đã duyệt'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                  child: const Text('Duyệt nhập'),
+                ),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationItem(Map<String, dynamic> data) {
+    bool isUnread = data['isUnread'];
+    Color color = data['color'] ?? Colors.blue;
+
+    return Card(
+      elevation: isUnread ? 2 : 0,
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: isUnread ? BorderSide(color: color.withOpacity(0.2)) : BorderSide.none,
+        side: isUnread ? BorderSide(color: color.withOpacity(0.3)) : BorderSide.none,
       ),
-      child: InkWell( // Dùng InkWell để có hiệu ứng gợn sóng khi bấm
+      child: InkWell(
         onTap: () => _markAsRead(data['id']),
         borderRadius: BorderRadius.circular(12),
         child: Container(
@@ -134,17 +223,12 @@ class _NotificationTabState extends State<NotificationTab> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon trạng thái
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isUnread ? color.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: isUnread ? color.withOpacity(0.1) : Colors.grey.withOpacity(0.1), shape: BoxShape.circle),
                 child: Icon(data['icon'], color: isUnread ? color : Colors.grey, size: 22),
               ),
               const SizedBox(width: 12),
-              // Nội dung
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,23 +236,12 @@ class _NotificationTabState extends State<NotificationTab> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(data['title'],
-                            style: TextStyle(
-                                fontWeight: isUnread ? FontWeight.bold : FontWeight.w500,
-                                color: isUnread ? Colors.black : Colors.grey[600],
-                                fontSize: 14
-                            )),
-                        if (isUnread)
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                          ),
+                        Expanded(child: Text(data['title'], style: TextStyle(fontWeight: isUnread ? FontWeight.bold : FontWeight.w500, color: isUnread ? Colors.black : Colors.grey[600], fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                        if (isUnread) Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(data['content'],
-                        style: TextStyle(fontSize: 13, color: isUnread ? Colors.black87 : Colors.grey, height: 1.4)),
+                    Text(data['content'], style: TextStyle(fontSize: 13, color: isUnread ? Colors.black87 : Colors.grey, height: 1.4)),
                     const SizedBox(height: 8),
                     Text(data['time'], style: const TextStyle(fontSize: 11, color: Colors.grey)),
                   ],

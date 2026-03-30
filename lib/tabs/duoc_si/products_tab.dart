@@ -1,4 +1,8 @@
+// lib/tabs/duoc_si/products_tab.dart
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../data/medicine_data.dart';
 
 class ProductsTab extends StatefulWidget {
   const ProductsTab({Key? key}) : super(key: key);
@@ -11,55 +15,19 @@ class _ProductsTabState extends State<ProductsTab> {
   String _searchQuery = '';
   String _selectedCategory = 'Tất cả';
 
-  final List<String> _categories = ['Tất cả', 'Giảm đau', 'Kháng sinh', 'Vitamin', 'Hô hấp', 'Khác'];
+  // Khởi tạo format tiền tệ VNĐ
+  final formatCurrency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
 
-  final List<Map<String, dynamic>> _mockProducts = [
-    {
-      'id': 'SP001',
-      'name': 'Panadol Extra 500mg',
-      'category': 'Giảm đau',
-      'price': '65.000',
-      'stock': 120,
-      'unit': 'Hộp',
-      'expiry': '12/2025',
-    },
-    {
-      'id': 'SP002',
-      'name': 'Vitamin C 1000mg',
-      'category': 'Vitamin',
-      'price': '85.000',
-      'stock': 15,
-      'unit': 'Lọ',
-      'expiry': '05/2025',
-    },
-    {
-      'id': 'SP003',
-      'name': 'Amoxicillin 500mg',
-      'category': 'Kháng sinh',
-      'price': '45.000',
-      'stock': 0,
-      'unit': 'Vỉ',
-      'expiry': '11/2024',
-    },
-    {
-      'id': 'SP004',
-      'name': 'Nước muối sinh lý 0.9%',
-      'category': 'Khác',
-      'price': '5.000',
-      'stock': 350,
-      'unit': 'Chai',
-      'expiry': '01/2026',
-    },
-    {
-      'id': 'SP005',
-      'name': 'Siro ho Prospan',
-      'category': 'Hô hấp',
-      'price': '75.000',
-      'stock': 8,
-      'unit': 'Chai',
-      'expiry': '08/2025',
-    },
-  ];
+  // Tự động trích xuất các danh mục duy nhất từ kho thuốc thực tế
+  List<String> get _categories {
+    Set<String> cats = {'Tất cả'};
+    for (var m in globalMedicines) {
+      if (m['category'] != null) {
+        cats.add(m['category']);
+      }
+    }
+    return cats.toList();
+  }
 
   Color _getStockColor(int stock) {
     if (stock == 0) return Colors.red;
@@ -73,6 +41,7 @@ class _ProductsTabState extends State<ProductsTab> {
     return 'Còn hàng ($stock)';
   }
 
+  // Hộp thoại xem chi tiết sản phẩm (ĐÃ XÓA NÚT CHỈNH SỬA, CHỈ CHO XEM)
   void _showProductDetails(BuildContext context, Map<String, dynamic> product) {
     showDialog(
       context: context,
@@ -99,11 +68,11 @@ class _ProductsTabState extends State<ProductsTab> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            product['name'],
+                            product['name'] ?? 'Chưa cập nhật',
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
                           ),
                           Text(
-                            'Mã SP: ${product['id']}',
+                            'Mã SP: ${product['id'] ?? 'N/A'}',
                             style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                           ),
                         ],
@@ -114,19 +83,19 @@ class _ProductsTabState extends State<ProductsTab> {
                 const SizedBox(height: 20),
                 const Divider(color: Colors.grey, thickness: 0.5),
                 const SizedBox(height: 12),
-                _buildDetailRow('Danh mục:', product['category']),
-                _buildDetailRow('Đơn vị tính:', product['unit']),
-                _buildDetailRow('Hạn sử dụng:', product['expiry']),
-                _buildDetailRow('Giá bán:', '${product['price']}đ', isPrice: true),
+                _buildDetailRow('Danh mục:', product['category'] ?? 'Khác'),
+                _buildDetailRow('Đơn vị tính:', product['unit'] ?? 'N/A'),
+                _buildDetailRow('Hạn sử dụng:', product['expiry'] ?? 'N/A'),
+                _buildDetailRow('Giá bán:', formatCurrency.format(product['price'] ?? 0), isPrice: true),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     children: [
                       const Text('Tồn kho: ', style: TextStyle(color: Colors.black87, fontSize: 14)),
                       Text(
-                        _getStockText(product['stock']),
+                        _getStockText(product['stock'] ?? 0),
                         style: TextStyle(
-                            color: _getStockColor(product['stock']),
+                            color: _getStockColor(product['stock'] ?? 0),
                             fontWeight: FontWeight.bold,
                             fontSize: 14
                         ),
@@ -135,37 +104,18 @@ class _ProductsTabState extends State<ProductsTab> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          side: BorderSide(color: Colors.grey.shade400),
-                        ),
-                        child: const Text('ĐÓNG', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-                      ),
+                // Nút Đóng tràn viền đẹp mắt
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      side: BorderSide(color: Colors.blue.shade400, width: 1.5),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tính năng sửa đang phát triển...')));
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          elevation: 0,
-                        ),
-                        child: const Text('CHỈNH SỬA', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ],
+                    child: const Text('ĐÓNG', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 15)),
+                  ),
                 ),
               ],
             ),
@@ -200,27 +150,21 @@ class _ProductsTabState extends State<ProductsTab> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Logic lọc (Category + Search)
-    List<Map<String, dynamic>> filteredProducts = _mockProducts.where((product) {
+    // Logic lọc (Category + Search)
+    List<Map<String, dynamic>> filteredProducts = globalMedicines.where((product) {
       bool matchCategory = _selectedCategory == 'Tất cả' || product['category'] == _selectedCategory;
       String query = _searchQuery.toLowerCase();
-      bool matchSearch = product['id'].toString().toLowerCase().contains(query) ||
-          product['name'].toString().toLowerCase().contains(query);
+      bool matchSearch = (product['id']?.toString().toLowerCase().contains(query) ?? false) ||
+          (product['name']?.toString().toLowerCase().contains(query) ?? false);
       return matchCategory && matchSearch;
     }).toList();
 
-    // 2. Logic Quản lý: Sắp xếp sản phẩm hết hàng hoặc sắp hết lên đầu để quản lý theo dõi
-    filteredProducts.sort((a, b) => a['stock'].compareTo(b['stock']));
+    // Sắp xếp sản phẩm hết hàng hoặc sắp hết lên đầu để Dược sĩ ưu tiên tư vấn
+    filteredProducts.sort((a, b) => (a['stock'] as int).compareTo(b['stock'] as int));
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tính năng Thêm sản phẩm mới')));
-        },
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      // ĐÃ BỎ FLOATING ACTION BUTTON (Nút thêm sản phẩm) vì Dược sĩ không có quyền này
       body: Column(
         children: [
           Container(
@@ -228,7 +172,7 @@ class _ProductsTabState extends State<ProductsTab> {
             color: Colors.blue,
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: const Text(
-              'QUẢN LÝ SẢN PHẨM',
+              'TRA CỨU SẢN PHẨM', // Đổi tên từ Quản lý -> Tra cứu cho đúng nghiệp vụ
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             ),
@@ -294,7 +238,7 @@ class _ProductsTabState extends State<ProductsTab> {
               itemCount: filteredProducts.length,
               itemBuilder: (context, index) {
                 final product = filteredProducts[index];
-                int stock = product['stock'];
+                int stock = product['stock'] ?? 0;
                 Color stockColor = _getStockColor(stock);
 
                 return Card(
@@ -320,14 +264,14 @@ class _ProductsTabState extends State<ProductsTab> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  product['name'],
+                                  product['name'] ?? 'N/A',
                                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Mã: ${product['id']} • ${product['category']}',
+                                  'Mã: ${product['id']} • ${product['category'] ?? 'Khác'}',
                                   style: TextStyle(color: Colors.grey[600], fontSize: 12),
                                 ),
                                 const SizedBox(height: 8),
@@ -335,7 +279,7 @@ class _ProductsTabState extends State<ProductsTab> {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      '${product['price']}đ / ${product['unit']}',
+                                      '${formatCurrency.format(product['price'] ?? 0)} / ${product['unit'] ?? ''}',
                                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue),
                                     ),
                                     Text(

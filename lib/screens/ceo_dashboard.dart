@@ -1,73 +1,81 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
-import 'login_screen.dart';
 
-// Import 5 file từ thư mục tabs/ceo của bạn
-import 'package:fl_quan_li_ban_thuoc/tabs/ceo/home_tab.dart';
-import 'package:fl_quan_li_ban_thuoc/tabs/ceo/catalog_tab.dart';
-import 'package:fl_quan_li_ban_thuoc/tabs/ceo/admins_tab.dart';
-import 'package:fl_quan_li_ban_thuoc/tabs/ceo/promotion_tab.dart';
-import 'package:fl_quan_li_ban_thuoc/tabs/ceo/profile_tab.dart';
+// --- IMPORT CÁC TRANG CHỨC NĂNG CỦA CEO ---
+import '../tabs/ceo/home_tab.dart';
+import '../tabs/ceo/admins_tab.dart';
+import '../tabs/ceo/profile_tab.dart';
+import '../pages/ceo/khuyen_mai/danh_sach_khuyen_mai_page.dart';
+
+// --- IMPORT TRANG NHÀ CUNG CẤP ---
+import '../pages/ceo/nha_cung_cap/supplier_page.dart';
 
 class CeoDashboard extends StatefulWidget {
-  const CeoDashboard({Key? key}) : super(key: key);
+  const CeoDashboard({super.key});
 
   @override
   State<CeoDashboard> createState() => _CeoDashboardState();
 }
 
 class _CeoDashboardState extends State<CeoDashboard> {
-  final AuthService _authService = AuthService();
+  // Mặc định mở app lên là vào trang Tổng quan (Tab 0)
   int _selectedIndex = 0;
 
-  void _logout(BuildContext context) async {
-    await _authService.logout();
-    Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (_) => LoginScreen()));
-  }
-
-  // Khai báo danh sách các màn hình của CEO
-  final List<Widget> _tabs = [
-    const CeoHomeTab(),
-    const CeoCatalogTab(),
-    const CeoAdminsTab(),
-    const CeoPromotionTab(),
-    const CeoProfileTab(),
+  // ==========================================================
+  // LẮP RÁP 5 TRANG VÀO ĐÚNG VỊ TRÍ
+  // ==========================================================
+  final List<Widget> _pages = [
+    const CeoHomeTab(),              // Tab 0: Tổng quan
+    const SupplierTab(),             // Tab 1: ĐÃ ĐỔI THÀNH NHÀ CUNG CẤP
+    const CeoAdminsTab(),            // Tab 2: Admins
+    const DanhSachKhuyenMaiPage(),   // Tab 3: Khuyến mãi
+    const CeoProfileTab(),           // Tab 4: Tài khoản
   ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('CEO Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.blueAccent,
-        elevation: 0,
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _logout(context),
-            tooltip: 'Đăng xuất',
-          ),
-        ],
+      // Dùng IndexedStack để giữ nguyên trạng thái các Tab khi chuyển qua lại
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
       ),
-      backgroundColor: Colors.grey[100],
-      body: _tabs[_selectedIndex], // Hiển thị nội dung Tab
 
+      // THANH MENU DƯỚI ĐÁY
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed, // Bắt buộc dùng fixed để hiện đủ 5 tab
         currentIndex: _selectedIndex,
-        onTap: (index) => setState(() => _selectedIndex = index),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.blueAccent,
+        onTap: _onItemTapped,
+        selectedItemColor: Colors.blue[600],
         unselectedItemColor: Colors.grey,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Tổng quan'),
-          BottomNavigationBarItem(icon: Icon(Icons.medication), label: 'Danh mục'),
-          BottomNavigationBarItem(icon: Icon(Icons.admin_panel_settings), label: 'Admins'),
-          BottomNavigationBarItem(icon: Icon(Icons.campaign), label: 'Khuyến mãi'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Tài khoản'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Tổng quan',
+          ),
+          // ĐÃ ĐỔI ICON VÀ CHỮ Ở ĐÂY THÀNH "NHÀ CUNG CẤP"
+          BottomNavigationBarItem(
+            icon: Icon(Icons.business),
+            label: 'Nhà cung cấp',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.admin_panel_settings),
+            label: 'Admins',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.campaign),
+            label: 'Khuyến mãi',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Tài khoản',
+          ),
         ],
       ),
     );
