@@ -10,6 +10,7 @@ import '../../pages/duoc_si/don_hang/scan_prescription_page.dart';
 import '../../pages/duoc_si/trang_chu/khach_hang_page.dart';
 import '../../pages/duoc_si/trang_chu/bao_cao_ca_page.dart';
 import '../../pages/duoc_si/trang_chu/ton_kho_page.dart';
+import '../../pages/duoc_si/don_hang/chi_tiet_hoa_don_page.dart'; // ĐÃ THÊM IMPORT TRANG HÓA ĐƠN
 
 // Import Data dùng chung
 import '../../data/order_data.dart';
@@ -32,115 +33,6 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
-
-  // Lấy màu sắc theo trạng thái đơn hàng để hiển thị trong chi tiết
-  Color _getStatusColor(String status) {
-    if (status == 'Hoàn thành') return Colors.green;
-    if (status == 'Đã hủy') return Colors.redAccent;
-    if (status == 'Chờ giao') return Colors.orange;
-    return Colors.blue;
-  }
-
-  // Widget hỗ trợ hiển thị các dòng thông tin chi tiết trong Modal Bottom Sheet
-  Widget _buildDetailRow(String label, String value, {bool isHighlight = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-          Text(
-              value,
-              style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                  color: isHighlight ? Colors.green : Colors.black87
-              )
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Hàm hiển thị chi tiết hóa đơn khi bấm vào
-  void _showOrderDetails(BuildContext context, Map<String, dynamic> order) {
-    final formatCurrency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
-
-    showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (context) {
-          return Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40, height: 5,
-                    decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Chi tiết đơn: ${order['id']}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(order['status']).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                          order['status'],
-                          style: TextStyle(color: _getStatusColor(order['status']), fontWeight: FontWeight.bold, fontSize: 12)
-                      ),
-                    )
-                  ],
-                ),
-                const Divider(height: 30),
-                _buildDetailRow('Khách hàng:', order['customerName'] ?? 'Khách lẻ'),
-                _buildDetailRow('Số điện thoại:', order['phone'] ?? 'Không có'),
-                _buildDetailRow('Thời gian:', '${order['time']} - ${order['date']}'),
-                _buildDetailRow('Hình thức:', order['type'] ?? 'Bán tại quầy'),
-
-                if (order['pointsPlus'] != null && order['pointsPlus'] > 0)
-                  _buildDetailRow('Điểm thưởng:', '+${order['pointsPlus']} điểm', isHighlight: true),
-
-                const Divider(height: 30),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('TỔNG THANH TOÁN:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    Text(
-                        formatCurrency.format(order['total']),
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.redAccent)
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text('ĐÓNG', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-                  ),
-                )
-              ],
-            ),
-          );
-        }
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -369,7 +261,7 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  // Tái cấu trúc lại Widget truyền thẳng Object Order vào
+  // ĐÃ SỬA: Chuyển trang Hóa Đơn mới thay cho popup
   Widget _buildOrderCard(BuildContext context, Map<String, dynamic> order, Color iconBg, IconData icon) {
     String displayId = order['id'].toString().startsWith('#') ? order['id'].toString() : '#${order['id']}';
     final currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
@@ -386,10 +278,14 @@ class _HomeTabState extends State<HomeTab> {
         ),
         title: Text(displayId, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text('Khách: ${order['customerName']}\n${order['time']} - ${order['date']}'),
-        // Format lại tiền chuẩn ở đây
         trailing: Text(currencyFormatter.format(order['total']), style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 15)),
-        // Mở popup chi tiết thay vì Toast
-        onTap: () => _showOrderDetails(context, order),
+        // MỞ TRANG CHI TIẾT HÓA ĐƠN
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ChiTietHoaDonPage(order: order)),
+          );
+        },
       ),
     );
   }

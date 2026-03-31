@@ -1,7 +1,15 @@
+// lib/tabs/duoc_si/profile_tab.dart
+
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../screens/login_screen.dart';
 
+// 1. IMPORT 4 TRANG CHỨC NĂNG MỚI
+import '../../pages/duoc_si/tai_khoan/cap_nhat_thong_tin_page.dart';
+import '../../pages/duoc_si/tai_khoan/doi_mat_khau_page.dart';
+import '../../pages/duoc_si/tai_khoan/lich_su_ca_lam_viec_page.dart';
+import '../../pages/duoc_si/tai_khoan/tro_giup_ho_tro_page.dart';
+import '../../../data/shift_report_data.dart';
 class ProfileTab extends StatelessWidget {
   final String fullName;
   final AuthService _authService = AuthService();
@@ -113,7 +121,7 @@ class ProfileTab extends StatelessWidget {
 
                   const SizedBox(height: 12),
 
-                  // 3. Danh sách Menu chức năng
+                  // 3. Danh sách Menu chức năng (ĐÃ SỬA SỰ KIỆN CHUYỂN TRANG)
                   Container(
                     color: Colors.white,
                     child: Column(
@@ -122,7 +130,9 @@ class ProfileTab extends StatelessWidget {
                             context,
                             icon: Icons.person_outline,
                             title: 'Cập nhật thông tin',
-                            onTap: () {}
+                            onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => CapNhatThongTinPage(fullName: fullName)));
+                            }
                         ),
                         const Divider(height: 1, indent: 60),
 
@@ -130,7 +140,9 @@ class ProfileTab extends StatelessWidget {
                             context,
                             icon: Icons.lock_outline,
                             title: 'Đổi mật khẩu',
-                            onTap: () {}
+                            onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const DoiMatKhauPage()));
+                            }
                         ),
                         const Divider(height: 1, indent: 60),
 
@@ -138,7 +150,9 @@ class ProfileTab extends StatelessWidget {
                             context,
                             icon: Icons.history,
                             title: 'Lịch sử ca làm việc',
-                            onTap: () {}
+                            onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => LichSuCaLamViecPage(pharmacistName: fullName)));
+                            }
                         ),
                         const Divider(height: 1, indent: 60),
 
@@ -146,7 +160,9 @@ class ProfileTab extends StatelessWidget {
                             context,
                             icon: Icons.help_outline,
                             title: 'Trợ giúp & Hỗ trợ',
-                            onTap: () {}
+                            onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const TroGiupHoTroPage()));
+                            }
                         ),
                       ],
                     ),
@@ -186,7 +202,7 @@ class ProfileTab extends StatelessWidget {
     );
   }
 
-  // Widget hỗ trợ vẽ các thanh menu
+  // Widget hỗ trợ vẽ các thanh menu (Đã sửa lại để gọi đúng sự kiện onTap)
   Widget _buildMenuTile(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap}) {
     return ListTile(
       leading: Container(
@@ -196,9 +212,7 @@ class ProfileTab extends StatelessWidget {
       ),
       title: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87)),
       trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tính năng đang được phát triển')));
-      },
+      onTap: onTap, // Thay thế dòng báo lỗi cũ bằng lời gọi hàm chuyển trang
     );
   }
 }

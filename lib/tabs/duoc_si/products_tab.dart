@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../data/medicine_data.dart';
+import '../../services/api_service.dart'; // IMPORT API SERVICE
 
 class ProductsTab extends StatefulWidget {
   const ProductsTab({Key? key}) : super(key: key);
@@ -12,21 +12,50 @@ class ProductsTab extends StatefulWidget {
 }
 
 class _ProductsTabState extends State<ProductsTab> {
+  final ApiService _apiService = ApiService(); // Khởi tạo Service
+  final formatCurrency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+
   String _searchQuery = '';
   String _selectedCategory = 'Tất cả';
 
-  // Khởi tạo format tiền tệ VNĐ
-  final formatCurrency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+  // Các biến quản lý State (Trạng thái)
+  bool _isLoading = true; // Ban đầu vào màn hình là phải Loading
+  List<Map<String, dynamic>> _medicines = []; // Danh sách thuốc lấy từ Server
+  List<String> _categories = ['Tất cả']; // Danh sách danh mục
 
-  // Tự động trích xuất các danh mục duy nhất từ kho thuốc thực tế
-  List<String> get _categories {
-    Set<String> cats = {'Tất cả'};
-    for (var m in globalMedicines) {
-      if (m['category'] != null) {
-        cats.add(m['category']);
+  @override
+  void initState() {
+    super.initState();
+    _loadDataFromServer(); // Gọi API ngay khi mở màn hình
+  }
+
+  // HÀM GỌI API LẤY DỮ LIỆU
+  Future<void> _loadDataFromServer() async {
+    setState(() => _isLoading = true); // Bật vòng quay
+
+    try {
+      // Gọi API (chờ 1.5 giây)
+      final data = await _apiService.fetchMedicines();
+
+      // Bóc tách danh mục từ data
+      Set<String> cats = {'Tất cả'};
+      for (var m in data) {
+        if (m['category'] != null) cats.add(m['category']);
       }
+
+      // Cập nhật giao diện
+      if (mounted) {
+        setState(() {
+          _medicines = data;
+          _categories = cats.toList();
+          _isLoading = false; // Tắt vòng quay
+        });
+      }
+    } catch (e) {
+      // Xử lý nếu API lỗi
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi tải dữ liệu từ máy chủ!')));
     }
-    return cats.toList();
   }
 
   Color _getStockColor(int stock) {
@@ -41,7 +70,7 @@ class _ProductsTabState extends State<ProductsTab> {
     return 'Còn hàng ($stock)';
   }
 
-  // Hộp thoại xem chi tiết sản phẩm (ĐÃ XÓA NÚT CHỈNH SỬA, CHỈ CHO XEM)
+  // KHÔI PHỤC HỘP THOẠI XEM CHI TIẾT SẢN PHẨM CỦA BẠN
   void _showProductDetails(BuildContext context, Map<String, dynamic> product) {
     showDialog(
       context: context,
@@ -104,7 +133,7 @@ class _ProductsTabState extends State<ProductsTab> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                // Nút Đóng tràn viền đẹp mắt
+                // Nút Đóng
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
@@ -150,8 +179,8 @@ class _ProductsTabState extends State<ProductsTab> {
 
   @override
   Widget build(BuildContext context) {
-    // Logic lọc (Category + Search)
-    List<Map<String, dynamic>> filteredProducts = globalMedicines.where((product) {
+    // LỌC DỮ LIỆU ĐÃ TẢI VỀ
+    List<Map<String, dynamic>> filteredProducts = _medicines.where((product) {
       bool matchCategory = _selectedCategory == 'Tất cả' || product['category'] == _selectedCategory;
       String query = _searchQuery.toLowerCase();
       bool matchSearch = (product['id']?.toString().toLowerCase().contains(query) ?? false) ||
@@ -159,12 +188,10 @@ class _ProductsTabState extends State<ProductsTab> {
       return matchCategory && matchSearch;
     }).toList();
 
-    // Sắp xếp sản phẩm hết hàng hoặc sắp hết lên đầu để Dược sĩ ưu tiên tư vấn
     filteredProducts.sort((a, b) => (a['stock'] as int).compareTo(b['stock'] as int));
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      // ĐÃ BỎ FLOATING ACTION BUTTON (Nút thêm sản phẩm) vì Dược sĩ không có quyền này
       body: Column(
         children: [
           Container(
@@ -172,7 +199,7 @@ class _ProductsTabState extends State<ProductsTab> {
             color: Colors.blue,
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: const Text(
-              'TRA CỨU SẢN PHẨM', // Đổi tên từ Quản lý -> Tra cứu cho đúng nghiệp vụ
+              'TRA CỨU SẢN PHẨM',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             ),
@@ -186,12 +213,11 @@ class _ProductsTabState extends State<ProductsTab> {
                   child: TextField(
                     decoration: InputDecoration(
                       hintText: 'Tìm theo tên thuốc, mã SP...',
-                      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
                       filled: true,
                       fillColor: Colors.grey[100],
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
                     ),
                     onChanged: (value) => setState(() => _searchQuery = value),
                   ),
@@ -212,15 +238,8 @@ class _ProductsTabState extends State<ProductsTab> {
                             selected: isSelected,
                             onSelected: (selected) => setState(() => _selectedCategory = category),
                             selectedColor: Colors.blue,
-                            labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : Colors.black87,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
+                            labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87),
                             backgroundColor: Colors.grey[100],
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              side: const BorderSide(color: Colors.transparent),
-                            ),
                           ),
                         );
                       }).toList(),
@@ -230,8 +249,15 @@ class _ProductsTabState extends State<ProductsTab> {
               ],
             ),
           ),
+
+          // KHÚC NÀY QUAN TRỌNG NHẤT: XỬ LÝ GIAO DIỆN LOADING
           Expanded(
-            child: filteredProducts.isEmpty
+            child: _isLoading
+                ? const Center(
+              // NẾU ĐANG TẢI: Hiển thị vòng quay loading
+                child: CircularProgressIndicator(color: Colors.blue)
+            )
+                : filteredProducts.isEmpty
                 ? const Center(child: Text('Không tìm thấy sản phẩm nào', style: TextStyle(color: Colors.grey, fontSize: 16)))
                 : ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -239,19 +265,16 @@ class _ProductsTabState extends State<ProductsTab> {
               itemBuilder: (context, index) {
                 final product = filteredProducts[index];
                 int stock = product['stock'] ?? 0;
-                Color stockColor = _getStockColor(stock);
 
                 return Card(
                   elevation: 1,
                   margin: const EdgeInsets.only(bottom: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   child: InkWell(
-                    onTap: () => _showProductDetails(context, product),
-                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _showProductDetails(context, product), // GỌI LẠI HÀM HIỂN THỊ CHI TIẾT
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Container(
                             padding: const EdgeInsets.all(12),
@@ -263,28 +286,20 @@ class _ProductsTabState extends State<ProductsTab> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  product['name'] ?? 'N/A',
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                                Text(product['name'] ?? 'N/A', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 4),
-                                Text(
-                                  'Mã: ${product['id']} • ${product['category'] ?? 'Khác'}',
-                                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                                ),
+                                Text('Mã: ${product['id']} • ${product['category']}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
                                 const SizedBox(height: 8),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      '${formatCurrency.format(product['price'] ?? 0)} / ${product['unit'] ?? ''}',
+                                      '${formatCurrency.format(product['price'] ?? 0)} / ${product['unit']}',
                                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue),
                                     ),
                                     Text(
                                       _getStockText(stock),
-                                      style: TextStyle(color: stockColor, fontSize: 12, fontWeight: FontWeight.bold),
+                                      style: TextStyle(color: _getStockColor(stock), fontSize: 12, fontWeight: FontWeight.bold),
                                     ),
                                   ],
                                 ),

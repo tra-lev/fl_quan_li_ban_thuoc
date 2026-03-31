@@ -34,12 +34,15 @@ class _HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Đếm số liệu thực tế
+    // 1. Đếm số liệu thực tế từ các nguồn dữ liệu
     int warningMedsCount = globalMedicines.where((m) => (m['stock'] as int) <= 20).length;
     int activeStaffsCount = globalStaffs.where((s) => s['status'] == 'Hoạt động').length;
     int pendingRequestsCount = globalRequests.where((req) => req['status'] == 'Chờ duyệt').length;
 
-    List<Map<String, dynamic>> pendingReports = globalShiftReports.where((rep) => rep['status'] == 'Chờ duyệt').toList();
+    // Lọc theo trạng thái "Đã nộp" để khớp với code của Dược sĩ
+    List<Map<String, dynamic>> pendingReports = globalShiftReports
+        .where((rep) => rep['status'] == 'Đã nộp' || rep['status'] == 'Chờ duyệt')
+        .toList();
     int pendingReportsCount = pendingReports.length;
 
     return Scaffold(
@@ -53,7 +56,6 @@ class _HomeTabState extends State<HomeTab> {
               children: [
                 Icon(Icons.dashboard_rounded, color: Colors.blueAccent, size: 28),
                 SizedBox(width: 12),
-                // FIX TRÀN VIỀN 1: Bọc Title bằng Expanded
                 Expanded(
                   child: Text(
                     'Tổng quan Hệ thống',
@@ -65,68 +67,47 @@ class _HomeTabState extends State<HomeTab> {
             ),
             const SizedBox(height: 20),
 
-            // LƯỚI THỐNG KÊ
-            LayoutBuilder(
-                builder: (context, constraints) {
-                  int crossAxisCount = 2;
-                  double childAspectRatio = 0.85;
-
-                  if (constraints.maxWidth >= 1100) {
-                    crossAxisCount = 4;
-                    childAspectRatio = 1.3;
-                  } else if (constraints.maxWidth >= 600) {
-                    crossAxisCount = 3;
-                    childAspectRatio = 1.1;
-                  }
-
-                  return GridView.count(
-                    crossAxisCount: crossAxisCount,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: childAspectRatio,
-                    children: [
-                      _buildModernStatCard(
-                        title: 'Thuốc cần chú ý',
-                        count: warningMedsCount.toString(),
-                        color: Colors.redAccent,
-                        icon: Icons.warning_amber_rounded,
-                        onTap: () => widget.onChangeTab?.call(3),
-                      ),
-                      _buildModernStatCard(
-                        title: 'Dược sĩ hoạt động',
-                        count: activeStaffsCount.toString(),
-                        color: Colors.green,
-                        icon: Icons.person_pin,
-                        onTap: () => widget.onChangeTab?.call(2),
-                      ),
-                      _buildModernStatCard(
-                        title: 'Đơn nhập chờ duyệt',
-                        count: pendingRequestsCount.toString(),
-                        color: Colors.orange,
-                        icon: Icons.inventory_2_outlined,
-                        onTap: () => widget.onChangeTab?.call(3),
-                      ),
-                      _buildModernStatCard(
-                          title: 'Ca chờ đối soát',
-                          count: pendingReportsCount.toString(),
-                          color: Colors.blueAccent,
-                          icon: Icons.account_balance_wallet,
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Danh sách đối soát đang hiển thị ngay bên dưới! 👇'),
-                                behavior: SnackBarBehavior.floating,
-                                backgroundColor: Colors.blueAccent,
-                              ),
-                            );
-                          }
-                      ),
-                    ],
-                  );
-                }
-            ),
+            // LƯỚI THỐNG KÊ (GRID VIEW)
+            LayoutBuilder(builder: (context, constraints) {
+              int crossAxisCount = constraints.maxWidth >= 600 ? 4 : 2;
+              return GridView.count(
+                crossAxisCount: crossAxisCount,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.1,
+                children: [
+                  _buildModernStatCard(
+                    title: 'Thuốc cần chú ý',
+                    count: warningMedsCount.toString(),
+                    color: Colors.redAccent,
+                    icon: Icons.warning_amber_rounded,
+                    onTap: () => widget.onChangeTab?.call(3),
+                  ),
+                  _buildModernStatCard(
+                    title: 'Dược sĩ hoạt động',
+                    count: activeStaffsCount.toString(),
+                    color: Colors.green,
+                    icon: Icons.person_pin,
+                    onTap: () => widget.onChangeTab?.call(2),
+                  ),
+                  _buildModernStatCard(
+                    title: 'Đơn nhập chờ duyệt',
+                    count: pendingRequestsCount.toString(),
+                    color: Colors.orange,
+                    icon: Icons.inventory_2_outlined,
+                    onTap: () => widget.onChangeTab?.call(3),
+                  ),
+                  _buildModernStatCard(
+                    title: 'Ca chờ đối soát',
+                    count: pendingReportsCount.toString(),
+                    color: Colors.blueAccent,
+                    icon: Icons.account_balance_wallet,
+                  ),
+                ],
+              );
+            }),
 
             const SizedBox(height: 30),
 
@@ -136,18 +117,15 @@ class _HomeTabState extends State<HomeTab> {
                 children: [
                   Icon(Icons.assignment_late_rounded, color: Colors.redAccent, size: 22),
                   SizedBox(width: 8),
-                  // FIX TRÀN VIỀN 2: Bọc tiêu đề section
                   Expanded(
                     child: Text(
                       'Báo Cáo Ca Cần Xử Lý',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -156,25 +134,29 @@ class _HomeTabState extends State<HomeTab> {
                   final originalIndex = globalShiftReports.indexOf(pendingReports[index]);
                   final report = pendingReports[index];
 
-                  double diff = (report['difference'] as num).toDouble();
+                  // TÍNH TOÁN DỰA TRÊN KEY TRONG FILE DUOC SI CỦA BẠN
+                  double systemCash = (report['cashRevenue'] ?? 0).toDouble();
+                  // Nếu dược sĩ chưa nhập tiền thực tế, ta coi như khớp để tránh lỗi giao diện
+                  double reportedCash = (report['reportedCash'] ?? systemCash).toDouble();
+                  double diff = reportedCash - systemCash;
 
                   Color diffColor = Colors.green;
-                  String diffText = "Khớp số liệu";
+                  String diffStatus = "Khớp số liệu";
+
                   if (diff < 0) {
                     diffColor = Colors.red;
-                    diffText = "THIẾU: ${formatCurrency.format(diff.abs())}"; // Rút gọn chữ cho đỡ tràn
+                    diffStatus = "THIẾU: ${formatCurrency.format(diff.abs())}";
                   } else if (diff > 0) {
                     diffColor = Colors.orange;
-                    diffText = "THỪA: ${formatCurrency.format(diff)}"; // Rút gọn chữ cho đỡ tràn
+                    diffStatus = "THỪA: ${formatCurrency.format(diff)}";
                   }
 
                   return Card(
                     elevation: 3,
-                    shadowColor: Colors.black12,
                     margin: const EdgeInsets.only(bottom: 16),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: diffColor.withOpacity(0.4), width: 1.5)
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: diffColor.withOpacity(0.3), width: 1),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -184,9 +166,8 @@ class _HomeTabState extends State<HomeTab> {
                           Row(
                             children: [
                               CircleAvatar(
-                                  radius: 22,
-                                  backgroundColor: Colors.blue.shade50,
-                                  child: const Icon(Icons.person, color: Colors.blueAccent)
+                                backgroundColor: Colors.blue.shade50,
+                                child: const Icon(Icons.person, color: Colors.blue),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -195,90 +176,51 @@ class _HomeTabState extends State<HomeTab> {
                                   children: [
                                     Text(
                                       '${report['pharmacist']} - Ca ${report['date']}',
-                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87),
-                                      overflow: TextOverflow.ellipsis, // Cắt chữ nếu tên dài
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                                     ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                                        const SizedBox(width: 4),
-                                        Expanded(
-                                          child: Text(
-                                            'Chốt lúc: ${report['time']}',
-                                            style: TextStyle(color: Colors.grey[700], fontSize: 13),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                    Text('Chốt lúc: ${report['time']}', style: const TextStyle(color: Colors.grey, fontSize: 13)),
                                   ],
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                    color: Colors.orange.shade50,
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.orange.shade200)
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: const Text('Chờ duyệt', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 11)),
-                              ),
+                                child: const Text('Đã nộp', style: TextStyle(color: Colors.blue, fontSize: 11, fontWeight: FontWeight.bold)),
+                              )
                             ],
                           ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: Divider(height: 1, thickness: 1, color: Colors.black12),
-                          ),
+                          const Divider(height: 24),
                           Container(
                             padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade200)
-                            ),
+                            decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12)),
                             child: Column(
                               children: [
-                                // Đã làm ngắn gọn nội dung để không bao giờ bị tràn
-                                _buildMoneyRow('Hệ thống:', formatCurrency.format(report['systemCash'])),
-                                _buildMoneyRow('Nộp thực tế:', formatCurrency.format(report['reportedCash'])),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 8),
-                                  child: Divider(height: 1, color: Colors.black12),
-                                ),
-                                _buildMoneyRow('LỆCH KÉT:', diffText, color: diffColor, isBold: true, size: 15),
+                                _buildMoneyRow('Doanh thu hệ thống:', formatCurrency.format(report['totalRevenue'] ?? 0)),
+                                _buildMoneyRow('Trong đó Tiền mặt:', formatCurrency.format(systemCash)),
+                                _buildMoneyRow('Tiền chuyển khoản:', formatCurrency.format(report['transferRevenue'] ?? 0)),
+                                const Divider(),
+                                _buildMoneyRow('TRẠNG THÁI:', diffStatus, color: diffColor, isBold: true),
                               ],
                             ),
                           ),
                           const SizedBox(height: 16),
-
-                          Wrap(
-                            alignment: WrapAlignment.end,
-                            spacing: 8,
-                            runSpacing: 8,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đang gọi điện cho Dược sĩ...')));
-                                },
+                              TextButton.icon(
+                                onPressed: () {},
                                 icon: const Icon(Icons.call, size: 18),
-                                label: const Text('Liên hệ', style: TextStyle(fontSize: 13)), // Làm ngắn nút
-                                style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.blueGrey,
-                                    side: BorderSide(color: Colors.grey.shade300),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
-                                ),
+                                label: const Text('Liên hệ'),
                               ),
+                              const SizedBox(width: 8),
                               ElevatedButton.icon(
                                 onPressed: () => _duyetBaoCao(originalIndex),
-                                icon: const Icon(Icons.verified, color: Colors.white, size: 18),
-                                label: const Text('Xác Nhận', style: TextStyle(fontSize: 13)),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
-                                    foregroundColor: Colors.white,
-                                    elevation: 2,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
-                                ),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                                icon: const Icon(Icons.check_circle, size: 18),
+                                label: const Text('Xác nhận đối soát'),
                               ),
                             ],
                           )
@@ -289,22 +231,17 @@ class _HomeTabState extends State<HomeTab> {
                 },
               ),
             ] else ...[
+              // Trạng thái trống
               const SizedBox(height: 60),
               Center(
                 child: Column(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(color: Colors.green.shade50, shape: BoxShape.circle),
-                      child: Icon(Icons.check_circle_outline, size: 50, color: Colors.green.shade300),
-                    ),
+                    Icon(Icons.check_circle_outline, size: 60, color: Colors.green.withOpacity(0.5)),
                     const SizedBox(height: 16),
-                    Text('Tuyệt vời!', style: TextStyle(color: Colors.green.shade700, fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text('Không có báo cáo ca nào cần đối soát.', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                    const Text('Hệ thống đã đối soát hết!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                   ],
                 ),
-              )
+              ),
             ]
           ],
         ),
@@ -312,16 +249,9 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  Widget _buildModernStatCard({
-    required String title,
-    required String count,
-    required Color color,
-    required IconData icon,
-    VoidCallback? onTap
-  }) {
+  Widget _buildModernStatCard({required String title, required String count, required Color color, required IconData icon, VoidCallback? onTap}) {
     return Card(
       elevation: 2,
-      shadowColor: Colors.black12,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
@@ -332,35 +262,12 @@ class _HomeTabState extends State<HomeTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(icon, color: color, size: 24),
-                  ),
-                  if (onTap != null)
-                    Icon(Icons.arrow_forward_ios, color: Colors.grey.shade400, size: 14)
-                ],
-              ),
+              Icon(icon, color: color, size: 28),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    count,
-                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black87),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    title,
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600], fontWeight: FontWeight.w600),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Text(count, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  Text(title, style: TextStyle(fontSize: 11, color: Colors.grey[600], fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               )
             ],
@@ -370,26 +277,14 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  // FIX TRÀN VIỀN 3: Đảm bảo dòng chữ báo cáo không ép số tiền văng ra ngoài
-  Widget _buildMoneyRow(String label, String value, {Color color = Colors.black87, bool isBold = false, double size = 13}) {
+  Widget _buildMoneyRow(String label, String value, {Color color = Colors.black87, bool isBold = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Thêm Expanded để label tự động cắt "..." nếu màn hình quá hẹp
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(fontSize: size, color: isBold ? Colors.black87 : Colors.grey[700], fontWeight: isBold ? FontWeight.bold : FontWeight.normal),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8), // Khoảng cách nhỏ để không bị dính vào tiền
-          Text(
-              value,
-              style: TextStyle(fontSize: isBold ? size + 2 : size, color: color, fontWeight: isBold ? FontWeight.w900 : FontWeight.bold)
-          ),
+          Text(label, style: TextStyle(fontSize: 13, color: isBold ? Colors.black87 : Colors.grey[700], fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+          Text(value, style: TextStyle(fontSize: 13, color: color, fontWeight: isBold ? FontWeight.bold : FontWeight.bold)),
         ],
       ),
     );

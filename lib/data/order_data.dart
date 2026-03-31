@@ -10,7 +10,12 @@ List<Map<String, dynamic>> globalOrders = [
     'total': 350000,
     'status': 'Hoàn thành',
     'pointsPlus': 35,
-    'type': 'Bán tại quầy'
+    'type': 'Bán tại quầy',
+    // ĐÃ THÊM: Danh sách chi tiết thuốc khách mua
+    'items': [
+      {'name': 'Paracetamol 500mg', 'qty': 2, 'price': 25000},
+      {'name': 'Vitamin C 1000mg', 'qty': 1, 'price': 300000},
+    ]
   },
   {
     'id': 'DH1025',
@@ -21,17 +26,9 @@ List<Map<String, dynamic>> globalOrders = [
     'total': 125000,
     'status': 'Đang giao',
     'pointsPlus': 12,
-    'type': 'Giao hàng'
-  },
-  {
-    'id': 'DH1026',
-    'date': '20/03/2026',
-    'time': '16:15',
-    'customerName': 'Lê Văn C',
-    'phone': '0888999777',
-    'total': 420000,
-    'status': 'Chờ xử lý',
-    'pointsPlus': 42,
-    'type': 'Giao hàng'
+    'type': 'Giao hàng',
+    'items': [
+      {'name': 'Khẩu trang y tế 4 lớp', 'qty': 5, 'price': 25000},
+    ]
   },
 ];

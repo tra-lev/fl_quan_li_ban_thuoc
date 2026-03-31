@@ -1,8 +1,35 @@
+// lib/pages/admin/kho_hang/category_detail_page.dart
+
 import 'package:flutter/material.dart';
 
 class CategoryDetailPage extends StatelessWidget {
   final String categoryName;
   const CategoryDetailPage({Key? key, required this.categoryName}) : super(key: key);
+
+  void _confirmDelete(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xác nhận xóa'),
+        content: Text('Bạn có chắc chắn muốn xóa danh mục "$categoryName" không? Lưu ý: Việc này sẽ không xóa các thuốc bên trong mà chỉ chuyển chúng về nhóm "Chưa phân loại".'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context), // Đóng Dialog
+            child: const Text('HỦY', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Đóng Dialog
+              // Đóng màn hình chi tiết và TRẢ VỀ TRUE báo hiệu lệnh XÓA
+              Navigator.pop(context, true);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('XÓA DANH MỤC', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +40,19 @@ class CategoryDetailPage extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(categoryName), backgroundColor: Colors.blueAccent, foregroundColor: Colors.white),
+      appBar: AppBar(
+        title: Text(categoryName),
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
+        actions: [
+          // THÊM NÚT XÓA Ở ĐÂY
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Xóa danh mục',
+            onPressed: () => _confirmDelete(context),
+          ),
+        ],
+      ),
       body: ListView.builder(
         itemCount: medicines.length,
         itemBuilder: (context, index) {
@@ -37,16 +76,15 @@ class CategoryDetailPage extends StatelessWidget {
   void _showMedicineDetails(BuildContext context, Map<String, String> med) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // 1. CHO PHÉP MỞ RỘNG CHIỀU CAO
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (context) => Padding(
         padding: const EdgeInsets.all(24.0),
-        // 2. BỌC TRONG SINGLECHILDSCROLLVIEW ĐỂ CUỘN ĐƯỢC
         child: SingleChildScrollView(
           child: Column(
-            mainAxisSize: MainAxisSize.min, // Giúp Column chỉ chiếm diện tích vừa đủ
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
